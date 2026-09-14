@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ansiklopedim-cache-v2';
+const CACHE_NAME = 'ansiklopedim-cache-v3';
 const FILES_TO_CACHE = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -17,8 +17,16 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+/* Önce internetten taze veriyi almaya çalışır; sadece internet yoksa önbelleği kullanır.
+   Böylece bir güncelleme yapıldığında her zaman en güncel sürüm gösterilir. */
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((res) => {
+        const resClone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
